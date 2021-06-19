@@ -21,25 +21,7 @@ public class ExchangeRateClient {
   private final NbpProperties nbpProperties;
   private final ObjectMapper objectMapper;
 
-  public BigDecimal getRate(String currency, String transactionType)
-      throws JsonProcessingException {
-    if ("PLN".equals(currency.toUpperCase())) { // in table C in nbp api does not exists json for pln, pln is a basic currency so it is shown as 1(task requirements)
-      return BigDecimal.ONE;
-    }
-    CurrencyRateResponse.Rate rate =
-        findCurrencyRate(currency, LocalDate.now()).getRates().stream()
-            .findFirst()
-            .orElseThrow(() -> new RuntimeException("Currency " + currency + " not found."));
-    if ("sell".equals(transactionType)) {
-      return rate.getBid();
-    }
-    if ("buy".equals(transactionType)) {
-      return rate.getAsk();
-    }
-    throw new RuntimeException("Transaction " + transactionType + " not found.");
-  }
-
-  protected CurrencyRateResponse findCurrencyRate(String currency, LocalDate forDate)
+  public CurrencyRateResponse findCurrencyRate(String currency, LocalDate forDate)
       throws JsonProcessingException {
     String address =
         String.format("%s/exchangerates/rates/c/%s/%s", nbpProperties.getUrl(), currency, forDate);

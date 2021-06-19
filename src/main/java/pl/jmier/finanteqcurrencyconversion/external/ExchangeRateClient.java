@@ -1,7 +1,6 @@
 package pl.jmier.finanteqcurrencyconversion.external;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpEntity;
@@ -14,8 +13,6 @@ import pl.jmier.finanteqcurrencyconversion.config.NbpProperties;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -26,10 +23,7 @@ public class ExchangeRateClient {
 
   public BigDecimal getRate(String currency, String transactionType)
       throws JsonProcessingException {
-    if ("pln"
-        .equals(
-            currency)) { // in table C in api is not value for pln, pln is a basic currency (task
-                         // requirements)
+    if ("PLN".equals(currency.toUpperCase())) { // in table C in nbp api does not exists json for pln, pln is a basic currency so it is shown as 1(task requirements)
       return BigDecimal.ONE;
     }
     CurrencyRateResponse.Rate rate =
@@ -42,10 +36,10 @@ public class ExchangeRateClient {
     if ("buy".equals(transactionType)) {
       return rate.getAsk();
     }
-      throw new RuntimeException("Transaction " + transactionType + " not found.");
+    throw new RuntimeException("Transaction " + transactionType + " not found.");
   }
 
-  private CurrencyRateResponse findCurrencyRate(String currency, LocalDate forDate)
+  protected CurrencyRateResponse findCurrencyRate(String currency, LocalDate forDate)
       throws JsonProcessingException {
     String address =
         String.format("%s/exchangerates/rates/c/%s/%s", nbpProperties.getUrl(), currency, forDate);
@@ -62,6 +56,9 @@ public class ExchangeRateClient {
     }
 
     if (rateResponse.getStatusCode().is4xxClientError()) {
+      if (LocalDate.now().isAfter(forDate.plusDays(10))) {
+        throw new RuntimeException("Currency " + currency + " not found.");
+      }
       return findCurrencyRate(currency, forDate.minusDays(1));
     }
 
@@ -69,4 +66,3 @@ public class ExchangeRateClient {
         "It was impossible to fetch currency rate " + rateResponse.getStatusCodeValue());
   }
 }
-// http://api.nbp.pl/api/exchangerates/tables/C/today/

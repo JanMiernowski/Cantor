@@ -1,17 +1,17 @@
 package pl.jmier.finanteqcurrencyconversion.external;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import java.math.BigDecimal;
 
 @Getter
 @Setter
+@AllArgsConstructor
 public class CurrencyRateRequest {
-
-    private String currencyToSell;
-    private String currencyToBuy;
-    private String transactionType;
-    private BigDecimal amount;
+  private String currencyInput;
+  private String currencyOutput;
+  private String transactionType;
+  private BigDecimal amount;
 }

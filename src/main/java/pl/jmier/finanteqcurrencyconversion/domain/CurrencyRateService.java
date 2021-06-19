@@ -19,8 +19,8 @@ public class CurrencyRateService {
 
     @Autowired
     private ExchangeRateClient exchangeRateClient;
-    private static final BigDecimal commission = BigDecimal.valueOf(0.98);
-    private static final List<String> currenciesList = List.of("PLN", "EUR", "USD", "GBD");
+    private static final BigDecimal COMMISSION = BigDecimal.valueOf(0.98);
+    private static final List<String> CURRENCIES_LIST = List.of("PLN", "EUR", "USD", "GBD");
     public static BigDecimal rateToBuy;
     public static BigDecimal rateToSell;
 
@@ -29,11 +29,11 @@ public class CurrencyRateService {
         String currencyOutput = request.getCurrencyOutput();
         BigDecimal amount = request.getAmount();
         String transactionType = request.getTransactionType();
-        if (currenciesList.stream()
+        if (CURRENCIES_LIST.stream()
                 .noneMatch(currency -> currency.equals(currencyInput.toUpperCase()))) {
             return "Waluta wejściowa.";
         }
-        if (currenciesList.stream()
+        if (CURRENCIES_LIST.stream()
                 .noneMatch(currency -> currency.equals(currencyOutput.toUpperCase()))) {
             return "Waluta wyjściowa.";
         }
@@ -73,8 +73,7 @@ public class CurrencyRateService {
 
     public BigDecimal getAmountToReturn(BigDecimal amount) {
         return amount
-                .divide(rateToBuy.divide(rateToSell, 4, RoundingMode.CEILING), 4, RoundingMode.CEILING)
-                .multiply(commission);
+                .divide(rateToBuy.divide(rateToSell, 4, RoundingMode.FLOOR), 4, RoundingMode.FLOOR)
+                .multiply(COMMISSION).setScale(4, RoundingMode.FLOOR);
     }
-
 }

@@ -8,5 +8,5 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Setter
 @ConfigurationProperties(prefix = "nbp")
 public class NbpProperties {
-    private String url;
+  private String url;
 }

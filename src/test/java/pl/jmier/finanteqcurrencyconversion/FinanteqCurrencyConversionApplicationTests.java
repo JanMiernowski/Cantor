@@ -15,19 +15,6 @@ import java.util.List;
 @SpringBootTest
 class FinanteqCurrencyConversionApplicationTests {
 
-	@Autowired
-	private ExchangeRateClient exchangeRateClient;
-
-	@Test
-	void shouldFetchExchangeRate() throws JsonProcessingException {
-		//given
-
-		//when
-		BigDecimal currencyRate = exchangeRateClient.getRate("EUR", "sell");
-		//then
-		Assertions.assertNotNull(currencyRate);
-	}
-
 	@Test
 	void contextLoads() {
 	}

@@ -3,8 +3,10 @@ package pl.jmier.finanteqcurrencyconversion.domain;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import pl.jmier.finanteqcurrencyconversion.external.CurrencyConversionRequest;
+import pl.jmier.finanteqcurrencyconversion.external.CurrencyConversionResponse;
 import pl.jmier.finanteqcurrencyconversion.external.CurrencyRateResponse;
 import pl.jmier.finanteqcurrencyconversion.external.ExchangeRateClient;
 
@@ -19,9 +21,9 @@ public class CurrencyRateService {
 
   @Autowired private ExchangeRateClient exchangeRateClient;
   private static final BigDecimal COMMISSION = BigDecimal.valueOf(0.98);
-  private static final List<String> CURRENCIES_LIST = List.of("PLN", "EUR", "USD", "GBD");
+  private static final List<String> CURRENCIES_LIST = List.of("PLN", "EUR", "USD", "GBP");
 
-  public String validateRequestAndGetRates(CurrencyConversionRequest request) {
+  public String validateUserRequest(CurrencyConversionRequest request) {
     String currencyInput = request.getCurrencyInput();
     String currencyOutput = request.getCurrencyOutput();
     BigDecimal amount = request.getAmount();
@@ -76,7 +78,37 @@ public class CurrencyRateService {
           .multiply(COMMISSION)
           .setScale(2, RoundingMode.FLOOR);
     }
-    return BigDecimal.ONE;
+    return BigDecimal.ONE.multiply(COMMISSION);
+  }
+
+  public ResponseEntity<CurrencyConversionResponse> getResponse(CurrencyConversionRequest request)
+      throws JsonProcessingException {
+    String message = validateUserRequest(request);
+    if (!message.equals("Kwota do zwrotu")) {
+      return ResponseEntity.badRequest()
+          .body(
+              new CurrencyConversionResponse(
+                  "Podano niewłąściwą daną: " + message, request.getAmount()));
+    }
+    if (request.getCurrencyInput().equals(request.getCurrencyOutput())) {
+      return ResponseEntity.ok(new CurrencyConversionResponse(message, request.getAmount()));
+    }
+    return convertAmountAndGet200Response(request, message);
+  }
+
+  private ResponseEntity<CurrencyConversionResponse> convertAmountAndGet200Response(
+      CurrencyConversionRequest request, String message) throws JsonProcessingException {
+    BigDecimal rateToSell = BigDecimal.ONE;
+    BigDecimal rateToBuy = BigDecimal.ONE;
+    if (!"PLN".equals(request.getCurrencyInput().toUpperCase())) {
+      rateToBuy = getRate(request.getCurrencyInput(), TransactionType.INTO_PLN);
+    }
+    if (!"PLN".equals(request.getCurrencyOutput().toUpperCase())) {
+      rateToSell = getRate(request.getCurrencyOutput(), TransactionType.FROM_PLN);
+    }
+    return ResponseEntity.ok(
+        new CurrencyConversionResponse(
+            message, getAmountToReturn(request.getAmount(), rateToBuy, rateToSell)));
   }
 
   public enum TransactionType {

@@ -15,7 +15,6 @@ class ExchangeRateClientTest {
 
   @Autowired private ExchangeRateClient exchangeRateClient;
 
-  //
   @Test
   void shouldReturnValuesForFriday18thOfJuneWhenCurrencyIsCorrectAndDateRequestIs18th()
       throws JsonProcessingException {

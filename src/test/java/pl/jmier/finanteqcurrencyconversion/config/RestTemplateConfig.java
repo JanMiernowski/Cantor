@@ -6,8 +6,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.web.client.DefaultResponseErrorHandler;
 import org.springframework.web.client.RestTemplate;
-
-import java.io.IOException;
 @TestConfiguration
 public class RestTemplateConfig {
     @Bean
@@ -20,7 +18,7 @@ public class RestTemplateConfig {
     public static class NoopErrorHandler extends DefaultResponseErrorHandler {
 
         @Override
-        public boolean hasError(ClientHttpResponse response) throws IOException {
+        public boolean hasError(ClientHttpResponse response) {
             return false;
         }
     }

@@ -35,11 +35,12 @@ public class ExchangeRateClient {
     if (rateResponse.getStatusCode().is2xxSuccessful()) {
       return objectMapper.readValue(rateResponse.getBody(), CurrencyRateResponse.class);
     }
-
+    //I assume that if it returns 400 in the tenth time, it means that the url is incorrect
     if (rateResponse.getStatusCode().is4xxClientError()) {
       if (LocalDate.now().isAfter(forDate.plusDays(10))) {
         throw new RuntimeException("Currency " + currency + " not found.");
       }
+      //nbp does not issue api on weekends, so I am looking for the first day that issues api
       return findCurrencyRate(currency, forDate.minusDays(1));
     }
 

@@ -4,7 +4,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.ResponseEntity;
 import pl.jmier.finanteqcurrencyconversion.external.CurrencyConversionRequest;
+import pl.jmier.finanteqcurrencyconversion.external.CurrencyConversionResponse;
 
 import java.math.BigDecimal;
 
@@ -50,7 +52,8 @@ class CurrencyRateServiceTest {
   void shouldReturnBidValueForTransactionTypeOnPln() throws JsonProcessingException {
     // given
     // when
-    BigDecimal bid = currencyRateService.getRate("usd", CurrencyRateService.TransactionType.INTO_PLN);
+    BigDecimal bid =
+        currencyRateService.getRate("usd", CurrencyRateService.TransactionType.INTO_PLN);
     // then
     assertNotNull(bid);
   }
@@ -71,13 +74,14 @@ class CurrencyRateServiceTest {
     // when
     BigDecimal ask =
         currencyRateService.getRate("usd", CurrencyRateService.TransactionType.FROM_PLN);
-    BigDecimal bid = currencyRateService.getRate("usd", CurrencyRateService.TransactionType.INTO_PLN);
+    BigDecimal bid =
+        currencyRateService.getRate("usd", CurrencyRateService.TransactionType.INTO_PLN);
     // then
     assertEquals(1, ask.compareTo(bid));
   }
 
   @Test
-  void shouldThrowExceptionForWrongTransaction(){
+  void shouldThrowExceptionForWrongTransaction() {
     // given
     // when
     RuntimeException exception =
@@ -92,7 +96,7 @@ class CurrencyRateServiceTest {
     // given
     CurrencyConversionRequest request = new CurrencyConversionRequest("xxx", "eur", BigDecimal.TEN);
     // when
-    String message = currencyRateService.validateRequestAndGetRates(request);
+    String message = currencyRateService.validateUserRequest(request);
     // then
     assertEquals("Waluta wejściowa.", message);
   }
@@ -102,7 +106,7 @@ class CurrencyRateServiceTest {
     // given
     CurrencyConversionRequest request = new CurrencyConversionRequest("pln", "xyz", BigDecimal.TEN);
     // when
-    String message = currencyRateService.validateRequestAndGetRates(request);
+    String message = currencyRateService.validateUserRequest(request);
     // then
     assertEquals("Waluta wyjściowa.", message);
   }
@@ -113,7 +117,7 @@ class CurrencyRateServiceTest {
     CurrencyConversionRequest request =
         new CurrencyConversionRequest("pln", "eur", BigDecimal.valueOf(-1));
     // when
-    String message = currencyRateService.validateRequestAndGetRates(request);
+    String message = currencyRateService.validateUserRequest(request);
     // then
     assertEquals("Kwota.", message);
   }
@@ -123,7 +127,7 @@ class CurrencyRateServiceTest {
     // given
     CurrencyConversionRequest request = new CurrencyConversionRequest("pln", "eur", BigDecimal.TEN);
     // when
-    String message = currencyRateService.validateRequestAndGetRates(request);
+    String message = currencyRateService.validateUserRequest(request);
     // then
     assertEquals("Kwota do zwrotu", message);
   }
@@ -149,7 +153,7 @@ class CurrencyRateServiceTest {
     BigDecimal rateToBuy = BigDecimal.valueOf(4.5503); // bid value in euro currency
     // when
     BigDecimal amountToReturn =
-            currencyRateService.getAmountToReturn(BigDecimal.ONE, rateToBuy, rateToSell);
+        currencyRateService.getAmountToReturn(BigDecimal.ONE, rateToBuy, rateToSell);
     // then
     assertEquals(BigDecimal.valueOf(4.45), amountToReturn);
   }
@@ -161,19 +165,97 @@ class CurrencyRateServiceTest {
     BigDecimal rateToBuy = BigDecimal.ONE; // bid value in pln currency
     // when
     BigDecimal amountToReturn =
-            currencyRateService.getAmountToReturn(BigDecimal.ONE, rateToBuy, rateToSell);
+        currencyRateService.getAmountToReturn(BigDecimal.ONE, rateToBuy, rateToSell);
     // then
     assertEquals(BigDecimal.valueOf(0.21), amountToReturn);
   }
+
   @Test
   void shouldReturnOneSpecificValueWhenUserWantToConvertFromTheSameValueUserWantsToConvertTo() {
     // given
-    BigDecimal rateToSell = BigDecimal.valueOf(4.5503); // ask value in pln currency
-    BigDecimal rateToBuy = BigDecimal.valueOf(4.5503); // bid value in pln currency
+    BigDecimal rateToSell = BigDecimal.valueOf(4.5503); // ask value in eur currency
+    BigDecimal rateToBuy = BigDecimal.valueOf(4.5503); // bid value in eur currency
     // when
     BigDecimal amountToReturn =
-            currencyRateService.getAmountToReturn(BigDecimal.ONE, rateToBuy, rateToSell);
+        currencyRateService.getAmountToReturn(BigDecimal.ONE, rateToBuy, rateToSell);
     // then
     assertEquals(BigDecimal.valueOf(0.98), amountToReturn);
+  }
+
+  @Test
+  void shouldReturnOneSpecificValueWhenUserWantToConvertFromPlnToPln() {
+    // given
+    BigDecimal rateToSell = BigDecimal.valueOf(1); // ask value in pln currency
+    BigDecimal rateToBuy = BigDecimal.valueOf(1); // bid value in pln currency
+    // when
+    BigDecimal amountToReturn =
+        currencyRateService.getAmountToReturn(BigDecimal.ONE, rateToBuy, rateToSell);
+    // then
+    assertEquals(BigDecimal.valueOf(0.98), amountToReturn);
+  }
+
+  @Test
+  void shouldReturnStatus200ForCorrectValues() throws JsonProcessingException {
+    // given
+    CurrencyConversionRequest currencyConversionRequest =
+        new CurrencyConversionRequest("eur", "usd", BigDecimal.valueOf(100));
+    // when
+    ResponseEntity<CurrencyConversionResponse> response =
+        currencyRateService.getResponse(currencyConversionRequest);
+    // then
+    assertEquals(response.getBody().getMessage(), response.getBody().getMessage());
+    assertEquals(response.getBody().getAmount(), response.getBody().getAmount());
+    CurrencyConversionResponse body = response.getBody();
+    assertEquals(200, response.getStatusCodeValue());
+    assertNotEquals(body.getAmount(), BigDecimal.valueOf(100));
+  }
+
+  @Test
+  void shouldReturnStatus200AndUnchangedAmountForThisSameCurrencyInputAndOutput()
+      throws JsonProcessingException {
+    // given
+    CurrencyConversionRequest currencyConversionRequest =
+        new CurrencyConversionRequest("eur", "eur", BigDecimal.valueOf(100));
+    // when
+    ResponseEntity<CurrencyConversionResponse> response =
+        currencyRateService.getResponse(currencyConversionRequest);
+    // then
+    assertEquals(response.getBody().getMessage(), response.getBody().getMessage());
+    assertEquals(response.getBody().getAmount(), response.getBody().getAmount());
+    CurrencyConversionResponse body = response.getBody();
+    assertEquals(200, response.getStatusCodeValue());
+    assertEquals(body.getAmount(), BigDecimal.valueOf(100));
+  }
+
+  @Test
+  void shouldReturnStatus400ForIncorrectCurrencyInput() throws JsonProcessingException {
+    // given
+    CurrencyConversionRequest currencyConversionRequest =
+        new CurrencyConversionRequest("xxx", "pln", BigDecimal.valueOf(100));
+    // when
+    ResponseEntity<CurrencyConversionResponse> response =
+        currencyRateService.getResponse(currencyConversionRequest);
+    // then
+    assertEquals(response.getBody().getMessage(), response.getBody().getMessage());
+    assertEquals(response.getBody().getAmount(), response.getBody().getAmount());
+    CurrencyConversionResponse body = response.getBody();
+    assertEquals(400, response.getStatusCodeValue());
+    assertEquals(body.getAmount(), BigDecimal.valueOf(100));
+  }
+
+  @Test
+  void shouldReturnStatus400ForIncorrectCurrencyOutput() throws JsonProcessingException {
+    // given
+    CurrencyConversionRequest currencyConversionRequest =
+        new CurrencyConversionRequest("pln", "xxx", BigDecimal.valueOf(100));
+    // when
+    ResponseEntity<CurrencyConversionResponse> response =
+        currencyRateService.getResponse(currencyConversionRequest);
+    // then
+    assertEquals(response.getBody().getMessage(), response.getBody().getMessage());
+    assertEquals(response.getBody().getAmount(), response.getBody().getAmount());
+    CurrencyConversionResponse body = response.getBody();
+    assertEquals(400, response.getStatusCodeValue());
+    assertEquals(body.getAmount(), BigDecimal.valueOf(100));
   }
 }

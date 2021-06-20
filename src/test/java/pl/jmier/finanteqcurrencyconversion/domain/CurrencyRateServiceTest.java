@@ -1,12 +1,11 @@
 package pl.jmier.finanteqcurrencyconversion.domain;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import pl.jmier.finanteqcurrencyconversion.external.CurrencyConversionRequest;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -17,99 +16,81 @@ class CurrencyRateServiceTest {
   @Autowired private CurrencyRateService currencyRateService;
 
   @Test
-  void shouldReturnOneForPlnCurrency()
-      throws InvocationTargetException, IllegalAccessException, NoSuchMethodException {
+  void shouldReturnOneForPlnCurrency() throws JsonProcessingException {
     // given
-    Method method =
-        CurrencyRateService.class.getDeclaredMethod("getRate", String.class, String.class);
-    method.setAccessible(true);
     // when
-    BigDecimal rate = (BigDecimal) method.invoke(currencyRateService, "pln", "sell");
+    BigDecimal rate =
+        currencyRateService.getRate("pln", CurrencyRateService.TransactionType.FROM_PLN);
     // then
     assertEquals(BigDecimal.ONE, rate);
   }
 
   @Test
-  void shouldReturnOneForPlnCurrencyEvenTransactionIsNotValid()
-      throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+  void shouldReturnOneForPlnCurrencyEvenTransactionIsNotValid() throws JsonProcessingException {
     // given
-    Method method =
-        CurrencyRateService.class.getDeclaredMethod("getRate", String.class, String.class);
-    method.setAccessible(true);
     // when
-    BigDecimal rate = (BigDecimal) method.invoke(currencyRateService, "pln", "xxx");
+    BigDecimal rate = currencyRateService.getRate("pln", null);
     // then
     assertEquals(BigDecimal.ONE, rate);
   }
 
   @Test
-  void shouldThrowExceptionWhenApiDoesNotContainCurrency() throws NoSuchMethodException {
+  void shouldThrowExceptionWhenApiDoesNotContainCurrency() {
     // given
-    Method method =
-        CurrencyRateService.class.getDeclaredMethod("getRate", String.class, String.class);
-    method.setAccessible(true);
     // when
-    assertThrows(
-        InvocationTargetException.class, () -> method.invoke(currencyRateService, "XXX", "sell"));
+    RuntimeException exception =
+        assertThrows(
+            RuntimeException.class,
+            () -> currencyRateService.getRate("XXX", CurrencyRateService.TransactionType.FROM_PLN));
     // then
+    assertEquals("Currency XXX not found.", exception.getMessage());
   }
 
   @Test
-  void shouldReturnBidValueForTransactionTypeSell()
-      throws InvocationTargetException, IllegalAccessException, NoSuchMethodException {
+  void shouldReturnBidValueForTransactionTypeOnPln() throws JsonProcessingException {
     // given
-    Method method =
-        CurrencyRateService.class.getDeclaredMethod("getRate", String.class, String.class);
-    method.setAccessible(true);
     // when
-    BigDecimal bid = (BigDecimal) method.invoke(currencyRateService, "usd", "sell");
+    BigDecimal bid = currencyRateService.getRate("usd", CurrencyRateService.TransactionType.INTO_PLN);
     // then
     assertNotNull(bid);
   }
 
   @Test
-  void shouldReturnAskValueForTransactionTypeSell()
-      throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+  void shouldReturnAskValueForTransactionTypeSell() throws JsonProcessingException {
     // given
-    Method method =
-        CurrencyRateService.class.getDeclaredMethod("getRate", String.class, String.class);
-    method.setAccessible(true);
     // when
-    BigDecimal ask = (BigDecimal) method.invoke(currencyRateService, "usd", "buy");
+    BigDecimal ask =
+        currencyRateService.getRate("usd", CurrencyRateService.TransactionType.FROM_PLN);
     // then
     assertNotNull(ask);
   }
 
   @Test
-  void shouldReturnAskAndBidValuesAndAskValueIsBiggerThanBid()
-      throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+  void shouldReturnAskAndBidValuesAndAskValueIsBiggerThanBid() throws JsonProcessingException {
     // given
-    Method method =
-        CurrencyRateService.class.getDeclaredMethod("getRate", String.class, String.class);
-    method.setAccessible(true);
     // when
-    BigDecimal ask = (BigDecimal) method.invoke(currencyRateService, "usd", "buy");
-    BigDecimal bid = (BigDecimal) method.invoke(currencyRateService, "usd", "sell");
+    BigDecimal ask =
+        currencyRateService.getRate("usd", CurrencyRateService.TransactionType.FROM_PLN);
+    BigDecimal bid = currencyRateService.getRate("usd", CurrencyRateService.TransactionType.INTO_PLN);
     // then
     assertEquals(1, ask.compareTo(bid));
   }
 
   @Test
-  void shouldThrowExceptionForWrongTransaction() throws NoSuchMethodException {
+  void shouldThrowExceptionForWrongTransaction(){
     // given
-    Method method =
-        CurrencyRateService.class.getDeclaredMethod("getRate", String.class, String.class);
-    method.setAccessible(true);
     // when
-    assertThrows(
-        InvocationTargetException.class, () -> method.invoke(currencyRateService, "usd", "XXX"));
+    RuntimeException exception =
+        assertThrows(RuntimeException.class, () -> currencyRateService.getRate("usd", null));
+    // then
+    assertEquals("Transaction " + null + " not found.", exception.getMessage());
     // then
   }
 
   @Test
   void shouldReturnSpecificMessageForIncorrectInputValue() {
     // given
-    CurrencyConversionRequest request = new CurrencyConversionRequest("xxx", "eur", "sell", BigDecimal.TEN);
+    CurrencyConversionRequest request = new CurrencyConversionRequest("xxx", "eur", BigDecimal.TEN);
     // when
     String message = currencyRateService.validateRequestAndGetRates(request);
     // then
@@ -119,7 +100,7 @@ class CurrencyRateServiceTest {
   @Test
   void shouldReturnSpecificMessageForIncorrectOutputValue() {
     // given
-    CurrencyConversionRequest request = new CurrencyConversionRequest("pln", "xyz", "buy", BigDecimal.TEN);
+    CurrencyConversionRequest request = new CurrencyConversionRequest("pln", "xyz", BigDecimal.TEN);
     // when
     String message = currencyRateService.validateRequestAndGetRates(request);
     // then
@@ -127,20 +108,10 @@ class CurrencyRateServiceTest {
   }
 
   @Test
-  void shouldReturnSpecificMessageForIncorrectTransactionType() {
-    // given
-    CurrencyConversionRequest request = new CurrencyConversionRequest("pln", "eur", "xxx", BigDecimal.TEN);
-    // when
-    String message = currencyRateService.validateRequestAndGetRates(request);
-    // then
-    assertEquals("Niewłaściwa transakcja.", message);
-  }
-
-  @Test
   void shouldReturnSpecificMessageForIncorrectAmount() {
     // given
     CurrencyConversionRequest request =
-        new CurrencyConversionRequest("pln", "eur", "buy", BigDecimal.valueOf(-1));
+        new CurrencyConversionRequest("pln", "eur", BigDecimal.valueOf(-1));
     // when
     String message = currencyRateService.validateRequestAndGetRates(request);
     // then
@@ -150,7 +121,7 @@ class CurrencyRateServiceTest {
   @Test
   void shouldReturnSpecificMessageWhenEveryValueIsCorrect() {
     // given
-    CurrencyConversionRequest request = new CurrencyConversionRequest("pln", "eur", "buy", BigDecimal.TEN);
+    CurrencyConversionRequest request = new CurrencyConversionRequest("pln", "eur", BigDecimal.TEN);
     // when
     String message = currencyRateService.validateRequestAndGetRates(request);
     // then
@@ -162,11 +133,47 @@ class CurrencyRateServiceTest {
   @Test
   void shouldReturnSpecificAmountForDifferentCurrencies() {
     // given
-    CurrencyRateService.rateToBuy = BigDecimal.valueOf(4.5503); // ask value in euro currency
-    CurrencyRateService.rateToSell = BigDecimal.valueOf(3.8198); // bid value in usd currency
+    BigDecimal rateToSell = BigDecimal.valueOf(4.5503); // ask value in euro currency
+    BigDecimal rateToBuy = BigDecimal.valueOf(3.8198); // bid value in usd currency
     // when
-    BigDecimal amountToReturn = currencyRateService.getAmountToReturn(BigDecimal.ONE);
+    BigDecimal amountToReturn =
+        currencyRateService.getAmountToReturn(BigDecimal.ONE, rateToBuy, rateToSell);
     // then
-    assertEquals(BigDecimal.valueOf(0.8226), amountToReturn);
+    assertEquals(BigDecimal.valueOf(0.82), amountToReturn);
+  }
+
+  @Test
+  void shouldReturnSpecificAmountWhenUserWantToConvertIntoPln() {
+    // given
+    BigDecimal rateToSell = BigDecimal.ONE; // ask value in pln currency
+    BigDecimal rateToBuy = BigDecimal.valueOf(4.5503); // bid value in euro currency
+    // when
+    BigDecimal amountToReturn =
+            currencyRateService.getAmountToReturn(BigDecimal.ONE, rateToBuy, rateToSell);
+    // then
+    assertEquals(BigDecimal.valueOf(4.45), amountToReturn);
+  }
+
+  @Test
+  void shouldReturnSpecificAmountWhenUserWantToConvertFromPln() {
+    // given
+    BigDecimal rateToSell = BigDecimal.valueOf(4.5503); // ask value in euro currency
+    BigDecimal rateToBuy = BigDecimal.ONE; // bid value in pln currency
+    // when
+    BigDecimal amountToReturn =
+            currencyRateService.getAmountToReturn(BigDecimal.ONE, rateToBuy, rateToSell);
+    // then
+    assertEquals(BigDecimal.valueOf(0.21), amountToReturn);
+  }
+  @Test
+  void shouldReturnOneSpecificValueWhenUserWantToConvertFromTheSameValueUserWantsToConvertTo() {
+    // given
+    BigDecimal rateToSell = BigDecimal.valueOf(4.5503); // ask value in pln currency
+    BigDecimal rateToBuy = BigDecimal.valueOf(4.5503); // bid value in pln currency
+    // when
+    BigDecimal amountToReturn =
+            currencyRateService.getAmountToReturn(BigDecimal.ONE, rateToBuy, rateToSell);
+    // then
+    assertEquals(BigDecimal.valueOf(0.98), amountToReturn);
   }
 }

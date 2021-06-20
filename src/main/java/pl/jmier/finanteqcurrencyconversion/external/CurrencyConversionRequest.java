@@ -12,6 +12,5 @@ import java.math.BigDecimal;
 public class CurrencyConversionRequest {
   private String currencyInput;
   private String currencyOutput;
-  private String transactionType;
   private BigDecimal amount;
 }

@@ -11,7 +11,6 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import pl.jmier.finanteqcurrencyconversion.config.NbpProperties;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Component

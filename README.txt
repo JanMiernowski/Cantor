@@ -2,7 +2,7 @@
 
 All data are provided from http://api.nbp.pl/api/exchangerates/rates/C/<currency>/<date>
 
-The cantor converts currency amounts. Api has two possibilities of transactions (sell/buy). Response contains
+The cantor converts currency amounts. Response contains
 convert amount and message. Request has to provide four variables: currency input, currency output, method of transaction and
 amount. I have done two http method (get/post), both can handle this case.
 1. Template of request get method (recommended, because url shows parameters):
